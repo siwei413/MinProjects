@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT-CHATBOT</title>
+    <!-- css -->
+    <link rel="stylesheet" href="../styles/index.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../styles/element-ui.css">
+    <!-- vue -->
+    <script src="../scripts/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <!-- axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- element-ui -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!-- js -->
+    <!-- <script src="../scripts/main.js"></script> -->
+    <!-- style演示区 -->
+    <style>
+
+    </style>
+</head>
+
+<body class="bgc">
+    <div id="app">
+        <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
+            <el-menu-item index="1" value="index" @click="toIndex()">首页</el-menu-item>
+            <el-menu-item index="2" value="home" @click="toHome()">移通超达</el-menu-item>
+            <el-menu-item index="3" value="page" @click="toPage()">移通语图</el-menu-item>
+            <el-menu-item>
+                <el-button type="text" @click="dialogVisible = true" style="color: rgb(36, 34, 34);">关于我们</el-button>
+                <el-dialog title="关于我们" :visible.sync="dialogVisible" width="100vh" :before-close="handleClose">
+                    <span>我们是来自移通学院的三个满腔热血的青年</span>
+                    <br>
+                    <span>我们正在努力开发一个方便好用的AI平台</span>
+                    <br>
+                    <span>如果对产品有任何的不满意和反馈,请发邮件至111111111@qq.com</span>
+                    <br>
+                    <span>感谢你的反馈，支持与陪伴，产品将和我们一起越来越好</span>
+                    <span slot="footer" class="dialog-footer">
+                        <el-button @click="dialogVisible = false">取 消</el-button>
+                        <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+                    </span>
+                </el-dialog>
+            </el-menu-item>
+        </el-menu>
+
+        <el-carousel height="670px" v-if="selectedOption==='index'">
+            <el-carousel-item v-for="(item,index) in images" :key="index">
+                <img :src="item.url" alt="图片" class="imge">
+            </el-carousel-item>
+        </el-carousel>
+
+        <div v-else-if="selectedOption === 'home'">
+            <!-- <div class="prelude">
+                <h2>移通超答</h2>
+            </div> -->
+            <div class="main">
+                <div class="main-left">
+                    <div class="main-left-top">
+                        <button class="btn-newChat" @click="addChatTitle">新建对话</button>
+                    </div>
+                    <ul class="main-left-ul">
+                        <li class="main-left-ul-li" v-for="(conversation, index) in conversations"
+                            :key="conversation.id" :class="getConversationClass(index)"
+                            @click="selectConversation(index)">
+                            <p class="main-left-ul-li-p">{{index+1}}、{{ conversation.name }}</p>
+                            <span class="main-left-ul-li-span">{{conversation.time}}</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="main-right">
+                    <div class="main-right-top">
+                        <div>
+                            <div v-show="sendShow" class="main-right-top-div">
+                                <div>
+                                    <div v-for="value in conversations[selectedConversationIndex].messages"
+                                        :key="value.id" class="main-right-top-div-div">
+                                        <div>
+                                            <p class="main-right-top-div-div-p"
+                                                :class="['message-bubble', value.sender]">
+                                                {{value.message}}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="main-right-bottom">
+                        <div class="main-right-bottom-main" v-show="sendShow">
+                            <div class="main-right-bottom-main-main">
+                                <div class="main-right-bottom-main-div">
+                                    <input type="text" placeholder="问点什么吧..." class="main-right-bottom-main-input"
+                                        v-model="userData" @keydown.enter.prevent="sendBtnMethod()">
+                                    <button class="main-right-bottom-main-btn" @click="sendBtnMethod()">发送</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div v-else-if="selectedOption === 'page'">
+            <!-- <div class="prelude">
+                <h2>移通语图</h2>
+            </div> -->
+            <div class="main">
+                <div class="main-left">
+                    <div class="main-left-top">
+                        <button class="btn-newChat" @click="addImagesTitle">新建对话</button>
+                    </div>
+                    <ul class="main-left-ul">
+                        <li class="main-left-ul-li" v-for="(imagesTitle, index) in imagesTitles" :key="imagesTitle.id"
+                            :class="getImageTitleClass(index)" @click="selectImagesTitle(index)">
+                            <p class="main-left-ul-li-p">{{index+1}}、{{ imagesTitle.name }}</p>
+                            <span class="main-left-ul-li-span">{{imagesTitle.time}}</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="main-right">
+                    <div class="main-right-top">
+                        <div v-show="sendShow" class="main-right-top-div">
+                            <div v-for="value in imagesTitles[selectedImagesTitleIndex].messages" :key="value.id"
+                                class="main-right-top-div-div">
+                                <div class="message-wrapper">
+                                    <p v-if="value.type === 'text'" class="main-right-top-div-div-p"
+                                        :class="['message-bu', value.sender]">
+                                        {{value.message}}</p>
+                                    <!-- <p v-if="value.type==='image'">正在加载...</p> -->
+                                    <div class="imageBody">
+                                        <img :src="value.message" alt="image" v-if="value.type === 'image'"
+                                            class="image" :class="['message-bu', value.sender]">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="main-right-bottom">
+                        <div class="main-right-bottom-main" v-show="sendShow">
+                            <div class="main-right-bottom-main-main">
+                                <div class="main-right-bottom-main-div">
+                                    <input type="text" placeholder="问点什么吧..." class="main-right-bottom-main-input"
+                                        v-model="userImageData" @keydown.enter.prevent="sendImageBtnMethod()">
+                                    <button class="main-right-bottom-main-btn" @click="sendImageBtnMethod()">发送</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                //
+                //
+                // 全局
+                showMain: true,
+                selectedOption: "index",
+                sendShow: true,
+                name: "新对话...",
+                //
+                //
+                // chatgpt
+                // 新消息
+                userData: "",
+                // 响应结果
+                resultData: "",
+                // conversations的索引
+                selectedConversationIndex: 0,
+                loading: false,
+                // 会话组件
+                conversations: [
+                    // 对象格式
+                    // {
+                    //     id: new Date().getTime(),
+                    //     name: username,
+                    //     time: messages.time,
+                    //     messages: [{
+                    //             id: new Date().getTime(),
+                    //             message: this.userData,
+                    //             ime: new Date().toLocaleString(),
+                    //             position: "left"
+                    //     }],
+                    // }
+                ],
+                //
+                //
+                // 语图
+                userImageData: "",
+                resultImageData: "",
+                selectedImagesTitleIndex: 0,
+                urlImage: null,
+                imagesTitles: [
+                    // 对象格式
+                    // {
+                    //     id: new Date().getTime(),
+                    //     name: username,
+                    //     time: messages.time,
+                    //     messages: [{
+                    //             id: new Date().getTime(),
+                    //             message: this.userImageData,
+                    //             time: new Date().toLocaleString(),
+                    //             position: "left"
+                    //     }],
+                    // }
+                ],
+                //
+                //
+                //element-ui
+                activeIndex: '1',
+                dialogVisible: false,
+                active: 0,
+                images: [{
+                        url: "../images/AI作画_20231112_25.jpg"
+                    },
+                    {
+                        url: "../images/AI作画_20231112_25.jpg"
+                    },
+                    {
+                        url: "../images/AI作画_20231112_25.jpg"
+                    },
+                    {
+                        url: "../images/AI作画_20231112_25.jpg"
+                    }
+                ]
+
+
+            },
+
+            methods: {
+                toIndex() {
+                    this.selectedOption = "index";
+                },
+                //
+                //
+                //chatgpt
+                // 发送请求获取响应结果
+                getResultData(index) {
+                    const userData = this.userData
+                    axios.post('http://127.0.0.1:5000/api/chat', {
+                            data: userData
+                        })
+                        .then(response => {
+                            const resultData = response.data.result;
+
+                            const AImessage = {
+                                id: new Date().getTime(),
+                                message: resultData,
+                                time: new Date().toLocaleString(),
+                                sender: 'system'
+                            }
+                            this.conversations[index].messages.push(AImessage);
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+
+                    this.userData = "";
+                },
+                sendMessage(index) {
+                    if (this.userData.trim() === "") {
+                        return;
+                    }
+                    const userData = this.userData
+                    const UserMessage = {
+                        id: new Date().getTime(),
+                        message: userData,
+                        time: new Date().toLocaleString(),
+                        sender: 'user'
+                    }
+                    if (this.conversations[index].messages.length === 0) {
+                        this.conversations[index].name = userData;
+                        this.conversations[index].messages.push(UserMessage);
+                    } else {
+                        this.conversations[index].messages.push(UserMessage);
+                    }
+
+                },
+                sendBtnMethod() {
+                    this.sendMessage(this.selectedConversationIndex);
+                    this.getResultData(this.selectedConversationIndex);
+                },
+                addChatTitle() {
+                    const conversation = {
+                        id: new Date().getTime(),
+                        name: "新对话...",
+                        time: new Date().toLocaleString(),
+                        messages: []
+                    }
+                    this.conversations.unshift(conversation);
+                },
+                selectConversation(index) {
+                    this.selectedConversationIndex = index;
+                },
+                toHome() {
+                    this.selectedOption = "home";
+                },
+                //
+                //
+                //语图
+                decodeImageData(b64Image) {
+                    // 将解码后的图片数据转换成data URL
+                    return 'data:image/jpeg;base64,' + b64Image;
+                },
+                getImageResultData(index) {
+                    const userImageData = this.userImageData
+                    axios.post('http://127.0.0.1:5000/api/image', {
+                            image: userImageData
+                        })
+                        .then(response => {
+                            const b64Image = response.data.data[0].b64_image
+                            const imageData = this.decodeImageData(b64Image)
+                            const AImessage = {
+                                id: new Date().getTime(),
+                                message: imageData,
+                                time: new Date().toLocaleString(),
+                                type: 'image',
+                                sender: 'system'
+                            }
+                            console.log(AImessage);
+                            this.imagesTitles[index].messages.push(AImessage);
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                    this.userImageData = "";
+                },
+                sendImageMessage(index) {
+                    if (this.userImageData.trim() === "") {
+                        return;
+                    }
+                    const userImageData = this.userImageData
+                    const sendImageMessage = {
+                        id: new Date().getTime(),
+                        message: userImageData,
+                        time: new Date().toLocaleString(),
+                        type: 'text',
+                        sender: 'user'
+                    }
+                    if (this.imagesTitles[index].messages.length === 0) {
+                        this.imagesTitles[index].name = userImageData;
+                        this.imagesTitles[index].messages.push(sendImageMessage);
+                    } else {
+                        this.imagesTitles[index].messages.push(sendImageMessage);
+                    }
+                },
+                addImagesTitle() {
+                    const imagesTitle = {
+                        id: new Date().getTime(),
+                        name: "新对话...",
+                        time: new Date().toLocaleString(),
+                        messages: []
+                    }
+                    this.imagesTitles.unshift(imagesTitle);
+                },
+                sendImageBtnMethod() {
+                    this.sendImageMessage(this.selectedImagesTitleIndex);
+                    this.getImageResultData(this.selectedImagesTitleIndex);
+                },
+                selectImagesTitle(index) {
+                    this.selectedImagesTitleIndex = index;
+                },
+                toPage() {
+                    this.selectedOption = "page";
+                }
+
+            },
+            computed: {
+                getConversationClass() {
+                    return (index) => {
+                        return this.selectedConversationIndex === index ? 'hover' : '';
+                    };
+                },
+                getImageTitleClass() {
+                    return (index) => {
+                        return this.selectedImagesTitleIndex === index ? 'hover' : '';
+                    };
+                }
+            },
+            mounted() {
+                this.addChatTitle();
+                this.addImagesTitle();
+
+            },
+            //
+            //
+            //element-ui
+            handleClose(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        done();
+                    })
+                    .catch(_ => {});
+            },
+
+
+        })
+    </script>
+</body>
+
+</html>
